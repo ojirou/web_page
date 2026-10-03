@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>やることリスト壁</title>
+<style>
+  :root {
+    --bg: #e9e4da;
+    --text: #2b2b2b;
+    --muted: #6b665d;
+    --panel: #ffffff;
+    --border: #cfc8bb;
+    --accent: #3b6ea8;
+    --note-yellow: #fff3a8;
+    --note-pink: #ffd1dc;
+    --note-blue: #cde7ff;
+    --note-green: #d4f5c9;
+    --note-text: #2b2b2b;
+    --shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #23211e;
+      --text: #ece8e1;
+      --muted: #a39d92;
+      --panel: #2f2c28;
+      --border: #48433c;
+      --accent: #7fb0e6;
+      --note-yellow: #e8d978;
+      --note-pink: #e8a9b8;
+      --note-blue: #a3c8ec;
+      --note-green: #aed9a1;
+      --shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  }
+  header {
+    max-width: 1100px;
+    margin: 0 auto 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  h1 { margin: 0; font-size: 1.5rem; }
+  header a { color: var(--accent); }
+  .count { color: var(--muted); font-size: 0.9rem; }
+  form {
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+  }
+  form input[type="text"] {
+    flex: 1 1 220px;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .colors { display: flex; gap: 6px; align-items: center; }
+  .colors label { cursor: pointer; }
+  .colors input { position: absolute; opacity: 0; pointer-events: none; }
+  .swatch {
+    display: block;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+  }
+  .colors input:checked + .swatch { border-color: var(--text); }
+  .colors input:focus-visible + .swatch { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  form button {
+    padding: 8px 16px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+  }
+  .toolbar {
+    max-width: 1100px;
+    margin: 0 auto 12px;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .toolbar button {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+  #wall {
+    max-width: 1100px;
+    margin: 0 auto;
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 18px;
+  }
+  .note {
+    position: relative;
+    min-height: 140px;
+    padding: 22px 12px 36px;
+    color: var(--note-text);
+    box-shadow: var(--shadow);
+    transform: rotate(var(--tilt, 0deg));
+    transition: transform 0.15s;
+    overflow-wrap: anywhere;
+  }
+  .note:hover { transform: rotate(0deg) scale(1.02); }
+  .note::before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 60px;
+    height: 16px;
+    margin-left: -30px;
+    background: rgba(255, 255, 255, 0.55);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+  .note.yellow { background: var(--note-yellow); }
+  .note.pink { background: var(--note-pink); }
+  .note.blue { background: var(--note-blue); }
+  .note.green { background: var(--note-green); }
+  .note.done .text { text-decoration: line-through; opacity: 0.55; }
+  .note .text { white-space: pre-wrap; font-size: 1rem; line-height: 1.4; }
+  .note .actions {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .note .actions button {
+    border: none;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--note-text);
+    padding: 2px 8px;
+    font-size: 0.85rem;
+  }
+  .empty {
+    max-width: 1100px;
+    margin: 40px auto;
+    text-align: center;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>やることリスト壁</h1>
+  <span class="count" id="count"></span>
+  <a href="./">ホームへ戻る</a>
+</header>
+
+<form id="add-form">
+  <input type="text" id="new-text" placeholder="やることを入力して Enter" maxlength="200" required aria-label="やること">
+  <div class="colors" role="radiogroup" aria-label="付箋の色">
+    <label><input type="radio" name="color" value="yellow" checked><span class="swatch" style="background:var(--note-yellow)" title="黄"></span></label>
+    <label><input type="radio" name="color" value="pink"><span class="swatch" style="background:var(--note-pink)" title="ピンク"></span></label>
+    <label><input type="radio" name="color" value="blue"><span class="swatch" style="background:var(--note-blue)" title="青"></span></label>
+    <label><input type="radio" name="color" value="green"><span class="swatch" style="background:var(--note-green)" title="緑"></span></label>
+  </div>
+  <button type="submit">貼る</button>
+</form>
+
+<div class="toolbar">
+  <button type="button" id="clear-done">完了した付箋をはがす</button>
+</div>
+
+<ul id="wall"></ul>
+<p class="empty" id="empty" hidden>壁はまだ空です。上の欄からやることを貼ってください。</p>
+
+<script>
+(function () {
+  var STORAGE_KEY = "todo-wall-v1";
+  var COLORS = ["yellow", "pink", "blue", "green"];
+  var wall = document.getElementById("wall");
+  var form = document.getElementById("add-form");
+  var input = document.getElementById("new-text");
+  var countEl = document.getElementById("count");
+  var emptyEl = document.getElementById("empty");
+
+  function load() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (!Array.isArray(data)) return [];
+      return data.filter(function (t) {
+        return t && typeof t.text === "string" && typeof t.id === "string";
+      }).map(function (t) {
+        return {
+          id: t.id,
+          text: t.text,
+          color: COLORS.indexOf(t.color) >= 0 ? t.color : "yellow",
+          done: !!t.done,
+          tilt: typeof t.tilt === "number" ? t.tilt : 0
+        };
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+    } catch (e) {
+      /* 保存できない環境（プライベートモード等）では画面上のみ保持 */
+    }
+  }
+
+  var todos = load();
+
+  function render() {
+    wall.textContent = "";
+    todos.forEach(function (t) {
+      var li = document.createElement("li");
+      li.className = "note " + t.color + (t.done ? " done" : "");
+      li.style.setProperty("--tilt", t.tilt + "deg");
+
+      var text = document.createElement("div");
+      text.className = "text";
+      text.textContent = t.text;
+
+      var actions = document.createElement("div");
+      actions.className = "actions";
+
+      var doneBtn = document.createElement("button");
+      doneBtn.type = "button";
+      doneBtn.textContent = t.done ? "↺ 戻す" : "✓ 完了";
+      doneBtn.addEventListener("click", function () {
+        t.done = !t.done;
+        save();
+        render();
+      });
+
+      var delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.textContent = "✕";
+      delBtn.setAttribute("aria-label", "はがす");
+      delBtn.addEventListener("click", function () {
+        todos = todos.filter(function (x) { return x.id !== t.id; });
+        save();
+        render();
+      });
+
+      actions.appendChild(doneBtn);
+      actions.appendChild(delBtn);
+      li.appendChild(text);
+      li.appendChild(actions);
+      wall.appendChild(li);
+    });
+
+    var remaining = todos.filter(function (t) { return !t.done; }).length;
+    countEl.textContent = todos.length ? "残り " + remaining + " / " + todos.length + " 件" : "";
+    emptyEl.hidden = todos.length > 0;
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var value = input.value.trim();
+    if (!value) return;
+    var color = form.querySelector("input[name=color]:checked").value;
+    todos.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      text: value,
+      color: color,
+      done: false,
+      tilt: Math.round((Math.random() * 6 - 3) * 10) / 10
+    });
+    input.value = "";
+    save();
+    render();
+    input.focus();
+  });
+
+  document.getElementById("clear-done").addEventListener("click", function () {
+    todos = todos.filter(function (t) { return !t.done; });
+    save();
+    render();
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
