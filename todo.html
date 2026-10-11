@@ -306,6 +306,49 @@
   });
 
   render();
+
+  // todos.json（リポジトリで管理）に追加されたやることを取り込む。
+  // 一度取り込んだ id は記録し、壁ではがしても再び貼られないようにする。
+  var IMPORTED_KEY = "todo-wall-imported-v1";
+  function loadImported() {
+    try {
+      var ids = JSON.parse(localStorage.getItem(IMPORTED_KEY));
+      return Array.isArray(ids) ? ids : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  if (window.fetch) {
+    fetch("todos.json", { cache: "no-cache" })
+      .then(function (res) { return res.ok ? res.json() : []; })
+      .then(function (items) {
+        if (!Array.isArray(items)) return;
+        var imported = loadImported();
+        var added = false;
+        items.forEach(function (item) {
+          if (!item || typeof item.id !== "string" || typeof item.text !== "string") return;
+          if (imported.indexOf(item.id) >= 0) return;
+          imported.push(item.id);
+          if (todos.some(function (t) { return t.id === item.id; })) return;
+          todos.push({
+            id: item.id,
+            text: item.text,
+            color: COLORS.indexOf(item.color) >= 0 ? item.color : "yellow",
+            done: false,
+            tilt: Math.round((Math.random() * 6 - 3) * 10) / 10
+          });
+          added = true;
+        });
+        try {
+          localStorage.setItem(IMPORTED_KEY, JSON.stringify(imported));
+        } catch (e) { /* 保存できない環境では毎回取り込み直す */ }
+        if (added) {
+          save();
+          render();
+        }
+      })
+      .catch(function () { /* todos.json が無い・読めない場合は何もしない */ });
+  }
 })();
 </script>
 </body>

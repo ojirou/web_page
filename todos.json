@@ -1,0 +1,22 @@
+[
+  {
+    "id": "2026-10-11-youtube-summary",
+    "text": "最近見て参考になった YouTube 動画の要約をまとめる",
+    "color": "yellow"
+  },
+  {
+    "id": "2026-10-11-nicos-gold-points",
+    "text": "ニコスゴールドカードのポイント還元率を上げる（参考になる YouTube 動画の要点をまとめ、それを見ながら進める）",
+    "color": "pink"
+  },
+  {
+    "id": "2026-10-11-obsidian-slides",
+    "text": "Obsidian のノートの取り方（運用ルール）をスライドにまとめ、正しく運用できるようにする",
+    "color": "blue"
+  },
+  {
+    "id": "2026-10-11-edit-workflow",
+    "text": "スマホの Claude Code で音声入力したやることを、どこで修正・編集すると効率がいいか検討する（PC で編集する方がよいと考えている）",
+    "color": "green"
+  }
+]
